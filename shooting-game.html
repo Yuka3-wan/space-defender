@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPACE DEFENDER</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #000;
+            font-family: 'Orbitron', monospace;
+            overflow: hidden;
+        }
+        
+        #stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+        
+        #gameContainer {
+            text-align: center;
+            z-index: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        #gameCanvas {
+            border: 3px solid #0ff;
+            border-radius: 10px;
+            display: block;
+            margin: 0 auto;
+            box-shadow: 0 0 50px #0ff, inset 0 0 20px rgba(0,255,255,0.2);
+            background: rgba(0,0,20,0.9);
+        }
+        
+        
+        #score {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 28px;
+            font-weight: 700;
+            color: #0ff;
+            text-shadow: 0 0 20px #0ff;
+            z-index: 10;
+        }
+        
+        #lives {
+            font-size: 18px;
+            color: #ff0066;
+            text-shadow: 0 0 15px #ff0066;
+        }
+        
+        #livesDisplay {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            color: #ff0066;
+            text-shadow: 0 0 20px #ff0066;
+            z-index: 10;
+        }
+        
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            text-align: center;
+            display: none;
+            z-index: 10;
+            background: rgba(0,0,0,0.8);
+            padding: 40px;
+            border-radius: 20px;
+            border: 2px solid #ff0066;
+            box-shadow: 0 0 40px #ff0066;
+        }
+        
+        #gameOver h2 {
+            font-size: 48px;
+            font-weight: 900;
+            color: #ff0066;
+            text-shadow: 0 0 30px #ff0066;
+            margin-bottom: 20px;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        #finalScore {
+            font-size: 28px;
+            color: #0ff;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px #0ff;
+        }
+        
+        #restartBtn {
+            padding: 15px 40px;
+            font-size: 20px;
+            font-weight: 700;
+            font-family: 'Orbitron', monospace;
+            cursor: pointer;
+            background: linear-gradient(45deg, #0ff, #ff0066);
+            border: none;
+            border-radius: 30px;
+            color: #000;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+            box-shadow: 0 0 30px rgba(0,255,255,0.5);
+        }
+        
+        #restartBtn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 50px rgba(0,255,255,0.8);
+        }
+        
+        #instructions {
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+            text-align: center;
+            z-index: 5;
+            width: 100%;
+        }
+        
+        #instructions span {
+            color: #0ff;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="stars"></canvas>
+    <div id="score">SCORE: 0</div>
+    <div id="livesDisplay">LIVES: ♥♥♥</div>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div id="instructions">
+            <span>←→</span> MOVE | <span>SPACE</span> SHOOT
+        </div>
+        <div id="gameOver">
+            <h2>GAME OVER</h2>
+            <div id="finalScore">FINAL SCORE: 0</div>
+            <button id="restartBtn" onclick="restartGame()">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <script>
+        // 星空の背景
+        const starsCanvas = document.getElementById('stars');
+        const starsCtx = starsCanvas.getContext('2d');
+        starsCanvas.width = window.innerWidth;
+        starsCanvas.height = window.innerHeight;
+        
+        const stars = [];
+        for (let i = 0; i < 200; i++) {
+            stars.push({
+                x: Math.random() * starsCanvas.width,
+                y: Math.random() * starsCanvas.height,
+                size: Math.random() * 2,
+                speed: Math.random() * 0.5 + 0.2
+            });
+        }
+        
+        function drawStars() {
+            starsCtx.clearRect(0, 0, starsCanvas.width, starsCanvas.height);
+            starsCtx.fillStyle = '#fff';
+            stars.forEach(star => {
+                starsCtx.beginPath();
+                starsCtx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                starsCtx.fill();
+                star.y += star.speed;
+                if (star.y > starsCanvas.height) {
+                    star.y = 0;
+                    star.x = Math.random() * starsCanvas.width;
+                }
+            });
+            requestAnimationFrame(drawStars);
+        }
+        drawStars();
+
+        // ゲーム本体
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const livesElement = document.getElementById('livesDisplay');
+        const gameOverElement = document.getElementById('gameOver');
+        const finalScoreElement = document.getElementById('finalScore');
+        const restartBtn = document.getElementById('restartBtn');
+
+        // ゲーム変数
+        let player = {
+            x: canvas.width / 2 - 30,
+            y: canvas.height - 90,
+            width: 60,
+            height: 80,
+            speed: 7,
+            lives: 3
+        };
+        
+        // プレイヤー画像の読み込み
+        const playerImg = new Image();
+        playerImg.src = 'rocket.png';
+
+        let bullets = [];
+        let enemies = [];
+        let particles = [];
+        let score = 0;
+        let gameRunning = true;
+        let keys = {};
+        let enemySpeed = 2;
+        let spawnRate = 0.02;
+        let invulnerable = false;
+        let invulnerableTime = 0;
+
+        // キー入力処理
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        // パーティクルエフェクト
+        function createParticles(x, y, color, count = 20) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    life: 1,
+                    color: color
+                });
+            }
+        }
+
+        // プレイヤーの描画
+        function drawPlayer() {
+            // 無敵時間中は点滅
+            if (invulnerable && Math.floor(invulnerableTime / 5) % 2 === 0) {
+                ctx.globalAlpha = 0.3;
+            }
+            
+            if (playerImg.complete) {
+                ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
+            } else {
+                // 画像が読み込まれていない場合は元のデザインを表示
+                const gradient = ctx.createLinearGradient(player.x, player.y, player.x, player.y + player.height);
+                gradient.addColorStop(0, '#0ff');
+                gradient.addColorStop(1, '#0088ff');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.moveTo(player.x + player.width / 2, player.y);
+                ctx.lineTo(player.x + 10, player.y + player.height);
+                ctx.lineTo(player.x + player.width / 2, player.y + player.height - 10);
+                ctx.lineTo(player.x + player.width - 10, player.y + player.height);
+                ctx.closePath();
+                ctx.fill();
+            }
+            
+            ctx.globalAlpha = 1;
+        }
+
+        // 弾の描画
+        function drawBullets() {
+            bullets.forEach(bullet => {
+                // グロー効果
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#ff0';
+                
+                const gradient = ctx.createLinearGradient(bullet.x, bullet.y, bullet.x, bullet.y + bullet.height);
+                gradient.addColorStop(0, '#fff');
+                gradient.addColorStop(0.5, '#ff0');
+                gradient.addColorStop(1, '#ff6600');
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+                
+                ctx.shadowBlur = 0;
+            });
+        }
+
+        // 敵の描画
+        function drawEnemies() {
+            enemies.forEach(enemy => {
+                // グロー効果
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#ff0066';
+                
+                const gradient = ctx.createRadialGradient(
+                    enemy.x + enemy.width/2, enemy.y + enemy.height/2, 0,
+                    enemy.x + enemy.width/2, enemy.y + enemy.height/2, enemy.width/2
+                );
+                gradient.addColorStop(0, '#ff0066');
+                gradient.addColorStop(0.5, '#ff0044');
+                gradient.addColorStop(1, '#880022');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(enemy.x + enemy.width/2, enemy.y + enemy.height/2, enemy.width/2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 中心のコア
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(enemy.x + enemy.width/2, enemy.y + enemy.height/2, enemy.width/6, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.shadowBlur = 0;
+            });
+        }
+
+        // パーティクルの描画
+        function drawParticles() {
+            particles = particles.filter(particle => {
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.life -= 0.02;
+                particle.vx *= 0.98;
+                particle.vy *= 0.98;
+                
+                if (particle.life > 0) {
+                    ctx.globalAlpha = particle.life;
+                    ctx.fillStyle = particle.color;
+                    ctx.fillRect(particle.x, particle.y, 3, 3);
+                    ctx.globalAlpha = 1;
+                    return true;
+                }
+                return false;
+            });
+        }
+
+        // プレイヤーの移動
+        function movePlayer() {
+            if (keys['ArrowLeft'] && player.x > 0) {
+                player.x -= player.speed;
+            }
+            if (keys['ArrowRight'] && player.x < canvas.width - player.width) {
+                player.x += player.speed;
+            }
+        }
+
+        // 弾の発射
+        function shoot() {
+            if (keys[' ']) {
+                if (bullets.length === 0 || bullets[bullets.length - 1].y < canvas.height - 100) {
+                    bullets.push({
+                        x: player.x + player.width / 2 - 3,
+                        y: player.y,
+                        width: 6,
+                        height: 15,
+                        speed: 12
+                    });
+                    createParticles(player.x + player.width / 2, player.y, '#ff0', 5);
+                }
+            }
+        }
+
+        // 弾の移動
+        function moveBullets() {
+            bullets = bullets.filter(bullet => {
+                bullet.y -= bullet.speed;
+                return bullet.y > -bullet.height;
+            });
+        }
+
+        // 敵の生成
+        function spawnEnemy() {
+            if (Math.random() < spawnRate) {
+                enemies.push({
+                    x: Math.random() * (canvas.width - 40),
+                    y: -40,
+                    width: 40,
+                    height: 40,
+                    speed: enemySpeed + Math.random() * 2
+                });
+            }
+        }
+
+        // 敵の移動
+        function moveEnemies() {
+            enemies = enemies.filter(enemy => {
+                enemy.y += enemy.speed;
+                enemy.x += Math.sin(enemy.y * 0.02) * 2;
+                return enemy.y < canvas.height;
+            });
+        }
+
+        // 衝突判定
+        function checkCollisions() {
+            // 弾と敵の衝突
+            bullets.forEach((bullet, bulletIndex) => {
+                enemies.forEach((enemy, enemyIndex) => {
+                    if (bullet.x < enemy.x + enemy.width &&
+                        bullet.x + bullet.width > enemy.x &&
+                        bullet.y < enemy.y + enemy.height &&
+                        bullet.y + bullet.height > enemy.y) {
+                        createParticles(enemy.x + enemy.width/2, enemy.y + enemy.height/2, '#ff0066', 30);
+                        bullets.splice(bulletIndex, 1);
+                        enemies.splice(enemyIndex, 1);
+                        score += 10;
+                        scoreElement.textContent = `SCORE: ${score}`;
+                        
+                        // 難易度上昇
+                        if (score % 100 === 0) {
+                            enemySpeed += 0.5;
+                            spawnRate = Math.min(spawnRate + 0.005, 0.06);
+                        }
+                    }
+                });
+            });
+
+            // プレイヤーと敵の衝突
+            if (!invulnerable) {
+                enemies.forEach((enemy, index) => {
+                    if (player.x < enemy.x + enemy.width &&
+                        player.x + player.width > enemy.x &&
+                        player.y < enemy.y + enemy.height &&
+                        player.y + player.height > enemy.y) {
+                        createParticles(enemy.x + enemy.width/2, enemy.y + enemy.height/2, '#ff0066', 40);
+                        createParticles(player.x + player.width/2, player.y + player.height/2, '#0ff', 40);
+                        enemies.splice(index, 1);
+                        player.lives--;
+                        updateLives();
+                        
+                        if (player.lives <= 0) {
+                            gameOver();
+                        } else {
+                            // 無敵時間を設定
+                            invulnerable = true;
+                            invulnerableTime = 120; // 2秒間無敵
+                        }
+                    }
+                });
+            }
+        }
+
+        // ライフ表示更新
+        function updateLives() {
+            let hearts = '';
+            for (let i = 0; i < player.lives; i++) {
+                hearts += '♥';
+            }
+            livesElement.textContent = `LIVES: ${hearts}`;
+        }
+
+        // ゲームオーバー
+        function gameOver() {
+            gameRunning = false;
+            finalScoreElement.textContent = `FINAL SCORE: ${score}`;
+            gameOverElement.style.display = 'block';
+        }
+
+        // ゲームリスタート
+        function restartGame() {
+            player.x = canvas.width / 2 - 30;
+            player.y = canvas.height - 90;
+            player.lives = 3;
+            bullets = [];
+            enemies = [];
+            particles = [];
+            score = 0;
+            enemySpeed = 2;
+            spawnRate = 0.02;
+            scoreElement.textContent = 'SCORE: 0';
+            updateLives();
+            gameRunning = true;
+            gameOverElement.style.display = 'none';
+            gameLoop();
+        }
+
+        // ゲームループ
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            // 背景のグラデーション
+            const bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            bgGradient.addColorStop(0, 'rgba(0,0,20,0.9)');
+            bgGradient.addColorStop(1, 'rgba(0,0,40,0.9)');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 無敵時間の更新
+            if (invulnerable) {
+                invulnerableTime--;
+                if (invulnerableTime <= 0) {
+                    invulnerable = false;
+                }
+            }
+
+            movePlayer();
+            shoot();
+            moveBullets();
+            spawnEnemy();
+            moveEnemies();
+            checkCollisions();
+
+            drawPlayer();
+            drawBullets();
+            drawEnemies();
+            drawParticles();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // ゲーム開始
+        updateLives();
+        gameLoop();
+    </script>
+</body>
+</html>
